@@ -46,3 +46,13 @@ Content-Type: application/json
 GET http://localhost:8080/api/tasks
 Authorization: Bearer <токен полученный на шаге 2>
 ```
+## Особенности реализации
+1. Разделение на слои (handlers, service, repository)
+2. JWT аутентификация
+3. Роуты, защищенные middleware
+4. Использование Gin binding для валидации входных данных
+5. Хеширование паролей с помощью bcrypt
+6. Использование UUID для уникальных идентификаторов
+## TODO
+1. Перевести на docker контейнеры
+2. Заменить in-memory репозитории на БД PostgreSQL

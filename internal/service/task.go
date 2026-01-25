@@ -29,7 +29,8 @@ func (s *TaskService) CreateTask(title, description, userID string) (*models.Tas
 		UserID:      userID,
 	}
 
-	err := s.repo.Create(task)
+	repoTask := task.ConvertToRepositoryTask()
+	err := s.repo.Create(repoTask)
 	if err != nil {
 		return nil, err
 	}
@@ -38,35 +39,48 @@ func (s *TaskService) CreateTask(title, description, userID string) (*models.Tas
 }
 
 func (s *TaskService) GetTask(id string) (*models.Task, error) {
-	task, err := s.repo.GetByID(id)
+	repoTask, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if task == nil {
+	if repoTask == nil {
 		return nil, errors.New("Task not found")
 	}
 
-	return task, nil
+	task := models.ConvertFromRepositoryTask(*repoTask)
+	return &task, nil
 }
 
 func (s *TaskService) GetAllTasks() ([]models.Task, error) {
-	return s.repo.GetAll()
-}
-
-func (s *TaskService) UpdateTask(id string, req models.UpdateTaskRequest, userID string) (*models.Task, error) {
-	task, err := s.repo.GetByID(id)
+	repoTasks, err := s.repo.GetAll()
 	if err != nil {
 		return nil, err
 	}
 
-	if task == nil {
+	tasks := make([]models.Task, len(repoTasks))
+	for i, repoTask := range repoTasks {
+		tasks[i] = models.ConvertFromRepositoryTask(repoTask)
+	}
+
+	return tasks, nil
+}
+
+func (s *TaskService) UpdateTask(id string, req models.UpdateTaskRequest, userID string) (*models.Task, error) {
+	repoTask, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if repoTask == nil {
 		return nil, errors.New("Task not found")
 	}
 
-	if task.UserID != userID {
+	if repoTask.UserID != userID {
 		return nil, errors.New("Access denied")
 	}
+
+	task := models.ConvertFromRepositoryTask(*repoTask)
 
 	if req.Title != "" {
 		task.Title = req.Title
@@ -80,25 +94,26 @@ func (s *TaskService) UpdateTask(id string, req models.UpdateTaskRequest, userID
 		task.Status = req.Status
 	}
 
-	err = s.repo.Update(*task)
+	updatedRepoTask := task.ConvertToRepositoryTask()
+	err = s.repo.Update(updatedRepoTask)
 	if err != nil {
 		return nil, err
 	}
 
-	return task, nil
+	return &task, nil
 }
 
 func (s *TaskService) DeleteTask(id, userID string) error {
-	task, err := s.repo.GetByID(id)
+	repoTask, err := s.repo.GetByID(id)
 	if err != nil {
 		return err
 	}
 
-	if task == nil {
+	if repoTask == nil {
 		return errors.New("Task not found")
 	}
 
-	if task.UserID != userID {
+	if repoTask.UserID != userID {
 		return errors.New("Access denied")
 	}
 

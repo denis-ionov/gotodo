@@ -1,5 +1,7 @@
 package models
 
+import "todo-api/internal/repository"
+
 type User struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -28,4 +30,22 @@ type UserResponse struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Email string `json:"email"`
+}
+
+func (u *User) ConvertToRepositoryUser() repository.User {
+	return repository.User{
+		ID:       u.ID,
+		Name:     u.Name,
+		Email:    u.Email,
+		Password: u.Password,
+	}
+}
+
+func ConvertFromRepositoryUser(ru repository.User) User {
+	return User{
+		ID:       ru.ID,
+		Name:     ru.Name,
+		Email:    ru.Email,
+		Password: ru.Password,
+	}
 }

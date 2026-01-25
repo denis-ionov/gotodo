@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: todo-api-postgres
+    environment:
+      POSTGRES_USER: todo_user
+      POSTGRES_PASSWORD: todo_password
+      POSTGRES_DB: todo_api_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo_user -d todo_api_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - todo-api-network
+
+  app:
+    build: .
+    container_name: todo-api
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: todo_user
+      DB_PASSWORD: todo_password
+      DB_NAME: todo_api_db
+      DB_SSL_MODE: disable
+      JWT_SECRET: secret_api_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - todo-api-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  todo-api-network:
+    driver: bridge

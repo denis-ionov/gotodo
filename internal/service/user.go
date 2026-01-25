@@ -35,7 +35,8 @@ func (s *UserService) CreateUser(name, email, password string) (*models.UserResp
 		Password: string(hashedPassword),
 	}
 
-	err = s.repo.Create(user)
+	repoUser := user.ConvertToRepositoryUser()
+	err = s.repo.Create(repoUser)
 	if err != nil {
 		return nil, err
 	}
@@ -48,49 +49,51 @@ func (s *UserService) CreateUser(name, email, password string) (*models.UserResp
 }
 
 func (s *UserService) GetUser(id string) (*models.UserResponse, error) {
-	user, err := s.repo.GetByID(id)
+	repoUser, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if user == nil {
+	if repoUser == nil {
 		return nil, errors.New("User not found")
 	}
 
 	return &models.UserResponse{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
+		ID:    repoUser.ID,
+		Name:  repoUser.Name,
+		Email: repoUser.Email,
 	}, nil
 }
 
 func (s *UserService) GetAllUsers() ([]models.UserResponse, error) {
-	users, err := s.repo.GetAll()
+	repoUsers, err := s.repo.GetAll()
 	if err != nil {
 		return nil, err
 	}
 
-	var userResponses []models.UserResponse
-	for _, user := range users {
-		userResponses = append(userResponses, models.UserResponse{
-			ID:    user.ID,
-			Name:  user.Name,
-			Email: user.Email,
-		})
+	userResponses := make([]models.UserResponse, len(repoUsers))
+	for i, repoUser := range repoUsers {
+		userResponses[i] = models.UserResponse{
+			ID:    repoUser.ID,
+			Name:  repoUser.Name,
+			Email: repoUser.Email,
+		}
 	}
 
 	return userResponses, nil
 }
 
 func (s *UserService) UpdateUser(id string, req models.UpdateUserRequest) (*models.UserResponse, error) {
-	user, err := s.repo.GetByID(id)
+	repoUser, err := s.repo.GetByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if user == nil {
+	if repoUser == nil {
 		return nil, errors.New("User not found")
 	}
+
+	user := models.ConvertFromRepositoryUser(*repoUser)
 
 	if req.Name != "" {
 		user.Name = req.Name
@@ -114,7 +117,8 @@ func (s *UserService) UpdateUser(id string, req models.UpdateUserRequest) (*mode
 		user.Password = string(hashedPassword)
 	}
 
-	err = s.repo.Update(*user)
+	updatedRepoUser := user.ConvertToRepositoryUser()
+	err = s.repo.Update(updatedRepoUser)
 	if err != nil {
 		return nil, err
 	}

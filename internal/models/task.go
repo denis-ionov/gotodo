@@ -1,5 +1,7 @@
 package models
 
+import "todo-api/internal/repository"
+
 type TaskStatus string
 
 const (
@@ -25,4 +27,24 @@ type UpdateTaskRequest struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	Status      TaskStatus `json:"status"`
+}
+
+func (t *Task) ConvertToRepositoryTask() repository.Task {
+	return repository.Task{
+		ID:          t.ID,
+		Title:       t.Title,
+		Description: t.Description,
+		Status:      string(t.Status),
+		UserID:      t.UserID,
+	}
+}
+
+func ConvertFromRepositoryTask(rt repository.Task) Task {
+	return Task{
+		ID:          rt.ID,
+		Title:       rt.Title,
+		Description: rt.Description,
+		Status:      TaskStatus(rt.Status),
+		UserID:      rt.UserID,
+	}
 }

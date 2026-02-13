@@ -12,19 +12,19 @@ import (
 )
 
 type AuthService struct {
-	userRepository repository.UserRepository
-	jwtSecret      string
+	userRepo  repository.UserRepository
+	jwtSecret string
 }
 
 func NewAuthService(userRepo repository.UserRepository, jwtSecret string) *AuthService {
 	return &AuthService{
-		userRepository: userRepo,
-		jwtSecret:      jwtSecret,
+		userRepo:  userRepo,
+		jwtSecret: jwtSecret,
 	}
 }
 
 func (s *AuthService) Register(name, email, password string) (*models.UserResponse, error) {
-	existingUser, _ := s.userRepository.GetByEmail(email)
+	existingUser, _ := s.userRepo.GetByEmail(email)
 	if existingUser != nil {
 		return nil, errors.New("User with this email exists")
 	}
@@ -41,7 +41,8 @@ func (s *AuthService) Register(name, email, password string) (*models.UserRespon
 		Password: string(hashedPassword),
 	}
 
-	err = s.userRepository.Create(user)
+	repoUser := user.ConvertToRepositoryUser()
+	err = s.userRepo.Create(repoUser)
 	if err != nil {
 		return nil, err
 	}
@@ -54,20 +55,20 @@ func (s *AuthService) Register(name, email, password string) (*models.UserRespon
 }
 
 func (s *AuthService) Login(email, password string) (string, error) {
-	user, err := s.userRepository.GetByEmail(email)
-	if err != nil || user == nil {
+	repoUser, err := s.userRepo.GetByEmail(email)
+	if err != nil || repoUser == nil {
 		return "", errors.New("Wrong email or password")
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(repoUser.Password), []byte(password))
 	if err != nil {
 		return "", errors.New("Wrong email or password")
 	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["user_id"] = user.ID
-	claims["email"] = user.Email
+	claims["user_id"] = repoUser.ID
+	claims["email"] = repoUser.Email
 	claims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 
 	tokenString, err := token.SignedString([]byte(s.jwtSecret))
@@ -79,14 +80,14 @@ func (s *AuthService) Login(email, password string) (string, error) {
 }
 
 func (s *AuthService) GetUserByID(userID string) (*models.UserResponse, error) {
-	user, err := s.userRepository.GetByID(userID)
-	if err != nil || user == nil {
+	repoUser, err := s.userRepo.GetByID(userID)
+	if err != nil || repoUser == nil {
 		return nil, errors.New("User not found")
 	}
 
 	return &models.UserResponse{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
+		ID:    repoUser.ID,
+		Name:  repoUser.Name,
+		Email: repoUser.Email,
 	}, nil
 }
